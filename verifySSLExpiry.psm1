@@ -7,7 +7,7 @@
   SITE URL
 .OUTPUTS
 .NOTES
-  Version:        0.1
+  Version:        0.2
   Author:         Arnaud Gandibleux
   Creation Date:  26/12/2020
   Purpose/Change: Verify SSL Expiry Date of given sites
@@ -17,6 +17,7 @@
 $timeout = 15
 $RetryInterval = 2
 $watch = New-Object System.Diagnostics.Stopwatch
+$totalTime = 0;
 
 
 Function verifySSLExpiry{
@@ -30,106 +31,85 @@ Function verifySSLExpiry{
     foreach ($site in $sites) {
         $watch.Start()
                 
-            Write-Host "Validating..." $site
+        Write-Host -ForegroundColor Cyan "Validating..." $site
 
-            $scriptBlock = {
-                $condition = 0
-                $url = $args[0]
-                Write-Host $url":443"
+        $scriptBlock = {
+            $url = $args[0]
 
-                #$getExpiryDate = openssl s_client -servername gandibleux.eu -connect "gandibleux.eu:443" 2>/dev/null | openssl x509 -noout -enddate | cut -f2- -d=
-                $getExpiryDate = openssl s_client -servername $args[0] -connect $url":443" 2>/dev/null | openssl x509 -noout -enddate | cut -f2- -d=
+            $getExpiryDate = openssl s_client -servername $args[0] -connect $url":443" 2>/dev/null | openssl x509 -noout -enddate  | cut -f2- -d= 
 
+            $siteResult = New-Object -TypeName psobject
+            $siteResult | Add-Member -MemberType NoteProperty -Name Name -Value $url
+
+            try {
                 $expiryDateFormat = $getExpiryDate.Split(" ")
                 $expiryDateFormat = $expiryDateFormat | Where-Object {$_}
                 $expiryDate = $expiryDateFormat[0]+" "+$expiryDateFormat[1]+" "+$expiryDateFormat[3]+" "+$expiryDateFormat[2]
                 $expiryDate = [DateTime] $expiryDate
-        
+            
                 $now = Get-Date
-                
+                    
                 $daysLeft = NEW-TIMESPAN –Start $now –End $expiryDate
-        
-                $siteResult = New-Object -TypeName psobject
-                $siteResult | Add-Member -MemberType NoteProperty -Name Name -Value $url
-                $siteResult | Add-Member -MemberType NoteProperty -Name expirySpan -Value $daysLeft
+                $siteResult | Add-Member -MemberType NoteProperty -Name condition -Value 1
 
-        
-                <# if ($siteResult.expirySpan.Days -le "71") {
-                    Write-Host -ForegroundColor Red "NOK"
-                }
-                else {
-                    Write-Host -ForegroundColor Green "OK"
-                } #>
-                $testObject =  New-Object -TypeName psobject
-                $testObject | Add-Member -MemberType NoteProperty -Name condition -Value 1
-                $testObject | Add-Member -MemberType NoteProperty -Name result -Value $siteResult
-
-                return $testObject
+            }
+            catch {
+                Write-Error "Please verify URL: $url"
+                $siteResult | Add-Member -MemberType NoteProperty -Name error -Value 1
+                $daysLeft = 0
             }
 
-            Start-Job -Name job1 -ScriptBlock $scriptBlock -ArgumentList $site
-            $test = Receive-Job -Name 'job1'
+            $siteResult | Add-Member -MemberType NoteProperty -Name expirySpan -Value $daysLeft
 
-            while ($watch.Elapsed.TotalSeconds -lt $timeout -and $test.condition -ne 1) {
-                Start-Sleep -Seconds $RetryInterval
-                Write-Host "Still waiting for action to complete after "$watch.Elapsed.TotalSeconds "seconds..."
-            }
-            $watch.Stop()
 
-            if ($watch.Elapsed.TotalSeconds -gt $timeout) {
-                Write-Host 'Action did not complete before timeout period..'
-                Write-Host $test.condition
-            } else {
-                Write-Host 'Action completed before the timeout period.'
-                Write-Host $test
-            }
-
-            #Remove-job -Name 'job1'
-            write-host "--- End of validation in" $watch.Elapsed.TotalSeconds "seconds ---"
-        $watch.Reset()
-    
-
-<#         $getExpiryDate = openssl s_client -servername gandibleux.eu -connect "gandibleux.eu:443" 2>/dev/null | openssl x509 -noout -enddate | cut -f2- -d=
-        #$getExpiryDate = openssl s_client -servername $site -connect "${site}:443" 2>/dev/null | openssl x509 -noout -enddate | cut -f2- -d=
-        $expiryDateFormat = $getExpiryDate.Split(" ")
-        $expiryDateFormat = $expiryDateFormat | Where-Object {$_}
-        $expiryDate = $expiryDateFormat[0]+" "+$expiryDateFormat[1]+" "+$expiryDateFormat[3]+" "+$expiryDateFormat[2]
-        $expiryDate = [DateTime] $expiryDate
-        
-        $now = Get-Date
-                
-        $daysLeft = NEW-TIMESPAN –Start $now –End $expiryDate
-        
-        $siteResult = New-Object -TypeName psobject
-        $siteResult | Add-Member -MemberType NoteProperty -Name Name -Value $site
-        $siteResult | Add-Member -MemberType NoteProperty -Name expirySpan -Value $daysLeft
-
-        $results +=$siteResult
-
-        if ($siteResult.expirySpan.Days -le "71") {
-               Write-Host -ForegroundColor Red "NOK"
+            return $siteResult
         }
-        else {
-               Write-Host -ForegroundColor Green "OK"
-        } #>
 
+        Start-Job -Name $site -ScriptBlock $scriptBlock -ArgumentList $site | Out-Null
+        $test = Receive-Job -Name $site
+
+        while ($watch.Elapsed.TotalSeconds -lt $timeout -and $test.condition -ne 1 -and $test.error -ne 1) {
+            $test = Receive-Job -Name $site
+            Write-Host "Waiting"$([math]::floor($watch.Elapsed.TotalSeconds)) "seconds for action to complete..."
+            Start-Sleep -Seconds $RetryInterval
+        }
+
+        $watch.Stop()
+
+        if ($watch.Elapsed.TotalSeconds -gt $timeout) {
+           Write-Host 'Action did not complete before timeout period'
+        } else {
+            Write-Host 'Action completed before the timeout period'
+                $results += $test
+            
+           
+        }
+
+        Remove-job -Force -Name $site
+        write-host -ForegroundColor Cyan "--- End of validation in" $watch.Elapsed.TotalSeconds "seconds ---"
+
+        $totalTime += $watch.Elapsed.TotalSeconds
+        $watch.Reset()
 
     }
 
     Write-Host -ForegroundColor Yellow "---RESULTS---"
     foreach ($r in $results) {
-        
-        if ($r.expirySpan.Days -le "71") {
+        if ($r.expirySpan.Days -le "70" -and $r.error -eq $null) {
             Write-Host -ForegroundColor Red $r.Name - $r.expirySpan.Days "Days Left"
         }
+        elseif ($r.error -eq $null) {
+            Write-Host -ForegroundColor Green $r.Name - $r.expirySpan.Days "Days Left"
+        }
         else {
-            Write-Host $r.Name - $r.expirySpan.Days "Days Left"
+            Write-Host -ForegroundColor Red $r.Name - "Failed"
         }
     }
-    Write-Host -ForegroundColor Yellow "---END OF RESULTS---"
+    Write-Host -ForegroundColor Yellow "---END OF RESULTS in $totalTime seconds---"
 
 
 }
+
 Export-ModuleMember -Function ‘verifySSLExpiry’
 
 

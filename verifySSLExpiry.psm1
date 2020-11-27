@@ -1,18 +1,16 @@
 <#
 .SYNOPSIS
-  Add NSX-T tags with NSX-T REST API based on collected CSV input
+  Verify SSL Expiry Date of given sites
 .DESCRIPTION
   <Brief description of script>
 .INPUTS
-  vCenter IP/FQDN
-  NSX-T Manager IP/FQDN
+  SITE URL
 .OUTPUTS
 .NOTES
-  Version:        1.0
+  Version:        0.1
   Author:         Arnaud Gandibleux
-  Creation Date:  10/04/2020
-  Purpose/Change: Add Tags with NSX-T REST API
-  Based on https://rutgerblom.com/2019/06/09/add-nsx-t-tags-to-virtual-machines-with-powershell/
+  Creation Date:  26/12/2020
+  Purpose/Change: Verify SSL Expiry Date of given sites
 .EXAMPLE
 #>
 

@@ -15,9 +15,8 @@
 #>
 
 $timeout = 15
-$RetryInterval = 2
-$watch = New-Object System.Diagnostics.Stopwatch
-$totalTime = 0;
+$checkInterval = 2
+$minDays = 68
 
 
 Function verifySSLExpiry {
@@ -25,6 +24,9 @@ Function verifySSLExpiry {
     param (
         [Parameter(Mandatory = $true)][string[]]$sites
     )
+    $watch = New-Object System.Diagnostics.Stopwatch
+    $totalTime = 0;
+
     Write-Host List of sites to check: $sites
     $results = @()
     
@@ -71,7 +73,7 @@ Function verifySSLExpiry {
         while ($watch.Elapsed.TotalSeconds -lt $timeout -and $test.condition -ne 1 -and $test.error -ne 1) {
             $test = Receive-Job -Name $site
             Write-Host "Waiting"$([math]::floor($watch.Elapsed.TotalSeconds)) "seconds for action to complete..."
-            Start-Sleep -Seconds $RetryInterval
+            Start-Sleep -Seconds $checkInterval
         }
 
         $watch.Stop()
@@ -96,7 +98,7 @@ Function verifySSLExpiry {
 
     Write-Host -ForegroundColor Yellow "---RESULTS---"
     foreach ($r in $results) {
-        if ($r.expirySpan.Days -le "70" -and $r.error -eq $null) {
+        if ($r.expirySpan.Days -le $minDays -and $r.error -eq $null) {
             Write-Host -ForegroundColor Red $r.Name - $r.expirySpan.Days "Days Left"
         }
         elseif ($r.error -eq $null) {

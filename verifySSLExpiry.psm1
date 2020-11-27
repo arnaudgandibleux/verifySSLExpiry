@@ -20,10 +20,10 @@ $watch = New-Object System.Diagnostics.Stopwatch
 $totalTime = 0;
 
 
-Function verifySSLExpiry{
+Function verifySSLExpiry {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)][string[]]$sites
+        [Parameter(Mandatory = $true)][string[]]$sites
     )
     Write-Host List of sites to check: $sites
     $results = @()
@@ -43,8 +43,8 @@ Function verifySSLExpiry{
 
             try {
                 $expiryDateFormat = $getExpiryDate.Split(" ")
-                $expiryDateFormat = $expiryDateFormat | Where-Object {$_}
-                $expiryDate = $expiryDateFormat[0]+" "+$expiryDateFormat[1]+" "+$expiryDateFormat[3]+" "+$expiryDateFormat[2]
+                $expiryDateFormat = $expiryDateFormat | Where-Object { $_ }
+                $expiryDate = $expiryDateFormat[0] + " " + $expiryDateFormat[1] + " " + $expiryDateFormat[3] + " " + $expiryDateFormat[2]
                 $expiryDate = [DateTime] $expiryDate
             
                 $now = Get-Date
@@ -77,10 +77,11 @@ Function verifySSLExpiry{
         $watch.Stop()
 
         if ($watch.Elapsed.TotalSeconds -gt $timeout) {
-           Write-Host 'Action did not complete before timeout period'
-        } else {
+            Write-Host 'Action did not complete before timeout period'
+        }
+        else {
             Write-Host 'Action completed before the timeout period'
-                $results += $test
+            $results += $test
             
            
         }

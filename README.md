@@ -1,4 +1,4 @@
-# verifySSLExpiry
+# PowerShell verifySSLExpiry
 
 Powershell script to verify SSL Expiry Date of given sites
   - Check multiple sites at once

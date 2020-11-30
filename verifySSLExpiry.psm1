@@ -126,7 +126,7 @@ Function verifySSLExpiry {
 
     $body += "</ul>"
 
-    send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject $subject -from_email $from_email -to_email $to_email $body
+    send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject $subject -from_email $from_email -to_email $to_email -body $body
     $watch.Stop()
     Write-Host -ForegroundColor Yellow "---END OF RESULTS in $($watch.Elapsed.TotalSeconds) seconds---"
 
@@ -157,6 +157,10 @@ function send_email {
 
 }
 
-Export-ModuleMember -Function verifySSLExpiry, send_email, save_smtp_credentials
+function test_email {
+    send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject "verifySSLExpiry - Test mail connectivity" -from_email $from_email -to_email $to_email -body "The verifySSLExpiry mail test has successful been executed."    
+}
+
+Export-ModuleMember -Function verifySSLExpiry, save_smtp_credentials, test_email
 
 

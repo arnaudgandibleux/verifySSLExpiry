@@ -18,6 +18,9 @@ $timeout = 15
 $checkInterval = 2
 $minDays = 68
 
+$smtp_user = "arnaud.gandibleux@gmail.com"
+
+Get-Module System.Net.Mail.SmtpClient
 
 Function verifySSLExpiry {
     [CmdletBinding()]
@@ -89,7 +92,7 @@ Function verifySSLExpiry {
         }
 
         Remove-job -Force -Name $site
-        write-host -ForegroundColor Cyan "--- End of validation in" $watch.Elapsed.TotalSeconds "seconds ---"
+        write-host -ForegroundColor DarkCyan "--- End of validation in" $watch.Elapsed.TotalSeconds "seconds ---"
 
         $totalTime += $watch.Elapsed.TotalSeconds
         $watch.Reset()
@@ -112,7 +115,29 @@ Function verifySSLExpiry {
 
 
 }
+function save_smtp_credentials {
 
-Export-ModuleMember -Function ‘verifySSLExpiry’
+    $cred = Get-Credential
+    $cred.Password | ConvertFrom-SecureString | out-file ./smtp_password.txt
+
+}
+
+function send_email {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)][string]$smtp_server,
+        [Parameter(Mandatory = $true)][string]$smtp_port,
+        [Parameter(Mandatory = $true)][string]$fromEmail,
+        [Parameter(Mandatory = $true)][string]$toEmail
+    )
+    
+    $smtp_passwd = Get-Content ./smtp_password.txt | ConvertTo-SecureString                                        
+    $credential = New-Object System.Management.Automation.PSCredential($smtp_user, $smtp_passwd) 
+
+    Send-MailMessage -WarningAction SilentlyContinue -From $fromEmail -To $toEmail -Subject 'this is a subject' -Body 'this is the body' -UseSsl -Port smtp_port -Credential $credential -SmtpServer $smtp_server
+
+}
+
+Export-ModuleMember -Function verifySSLExpiry, send_email, save_smtp_credentials
 
 

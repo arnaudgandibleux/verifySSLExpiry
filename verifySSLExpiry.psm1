@@ -19,6 +19,10 @@ $checkInterval = 2
 $minDays = 68
 
 $smtp_user = "arnaud.gandibleux@gmail.com"
+$smtp_server = "smtp.gmail.com"
+$smtp_port = "587"
+$from_email = "arnaud.gandibleux@gmail.com"
+$to_email = "arnaud.gandibleux@gmail.com"
 
 Function verifySSLExpiry {
     [CmdletBinding()]
@@ -98,17 +102,30 @@ Function verifySSLExpiry {
     }
 
     Write-Host -ForegroundColor Yellow "---RESULTS---"
+
+    $subject = "A SSL Certificate is almost expiring in your domain"
+
+    $body = "<h1>$($subject)</h1><p>The following SSL certificates are almost expiring. Check the underneath list to see more details.</p>"
+    $body += "<ul>"
+
     foreach ($r in $results) {
         if ($r.expirySpan.Days -le $minDays -and $r.error -eq $null) {
             Write-Host -ForegroundColor Red $r.Name - $r.expirySpan.Days "Days Left"
+            $body += "<li>$($r.Name) - $($r.expirySpan.Days) Days left</li>"
         }
         elseif ($r.error -eq $null) {
             Write-Host -ForegroundColor Green $r.Name - $r.expirySpan.Days "Days Left"
+            $body += "<li>$($r.Name) - $($r.expirySpan.Days) Days left</li>"
         }
         else {
             Write-Host -ForegroundColor Red $r.Name - "Failed"
         }
+
     }
+
+    $body += "</ul>"
+
+    send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject $subject -from_email $from_email -to_email $to_email $body
     Write-Host -ForegroundColor Yellow "---END OF RESULTS in $totalTime seconds---"
 
 
@@ -125,14 +142,16 @@ function send_email {
     param (
         [Parameter(Mandatory = $true)][string]$smtp_server,
         [Parameter(Mandatory = $true)][string]$smtp_port,
-        [Parameter(Mandatory = $true)][string]$fromEmail,
-        [Parameter(Mandatory = $true)][string]$toEmail
+        [Parameter(Mandatory = $true)][string]$from_email,
+        [Parameter(Mandatory = $true)][string]$to_email,
+        [Parameter(Mandatory = $true)][string]$subject,
+        [Parameter(Mandatory = $true)][string]$body
     )
     
-    $smtp_passwd = Get-Content ./smtp_password.txt | ConvertTo-SecureString                                        
+    $smtp_passwd = Get-Content ./smtp_password.txt | ConvertTo-SecureString 
     $credential = New-Object System.Management.Automation.PSCredential($smtp_user, $smtp_passwd) 
-
-    Send-MailMessage -WarningAction SilentlyContinue -From $fromEmail -To $toEmail -Subject 'this is a subject' -Body 'this is the body' -UseSsl -Port smtp_port -Credential $credential -SmtpServer $smtp_server
+    
+    Send-MailMessage -WarningAction SilentlyContinue -From $from_email -To $to_email -Subject $subject -BodyAsHtml $body -UseSsl -SmtpServer $smtp_server -Port $smtp_port -Credential $credential 
 
 }
 

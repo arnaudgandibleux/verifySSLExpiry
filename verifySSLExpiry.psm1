@@ -20,8 +20,6 @@ $minDays = 68
 
 $smtp_user = "arnaud.gandibleux@gmail.com"
 
-Get-Module System.Net.Mail.SmtpClient
-
 Function verifySSLExpiry {
     [CmdletBinding()]
     param (

@@ -30,13 +30,14 @@ Function verifySSLExpiry {
         [Parameter(Mandatory = $true)][string[]]$sites
     )
     $watch = New-Object System.Diagnostics.Stopwatch
-    $totalTime = 0;
+    $watch.Start()
 
     Write-Host List of sites to check: $sites
     $results = @()
     
     foreach ($site in $sites) {
-        $watch.Start()
+        $watch_per_site = New-Object System.Diagnostics.Stopwatch
+        $watch_per_site.Start()
                 
         Write-Host -ForegroundColor Cyan "Validating..." $site
 
@@ -75,15 +76,16 @@ Function verifySSLExpiry {
         Start-Job -Name $site -ScriptBlock $scriptBlock -ArgumentList $site | Out-Null
         $test = Receive-Job -Name $site
 
-        while ($watch.Elapsed.TotalSeconds -lt $timeout -and $test.condition -ne 1 -and $test.error -ne 1) {
-            $test = Receive-Job -Name $site
-            Write-Host "Waiting"$([math]::floor($watch.Elapsed.TotalSeconds)) "seconds for action to complete..."
+        while ($watch_per_site.Elapsed.TotalSeconds -lt $timeout -and $test.condition -ne 1 -and $test.error -ne 1) {
             Start-Sleep -Seconds $checkInterval
+            $test = Receive-Job -Name $site
+            Write-Host "Waiting"$($watch_per_site.Elapsed.TotalSeconds) "seconds for action to complete..."
+            
         }
 
-        $watch.Stop()
+        $watch_per_site.Stop()
 
-        if ($watch.Elapsed.TotalSeconds -gt $timeout) {
+        if ($watch_per_site.Elapsed.TotalSeconds -gt $timeout) {
             Write-Host 'Action did not complete before timeout period'
         }
         else {
@@ -94,10 +96,9 @@ Function verifySSLExpiry {
         }
 
         Remove-job -Force -Name $site
-        write-host -ForegroundColor DarkCyan "--- End of validation in" $watch.Elapsed.TotalSeconds "seconds ---"
+        write-host -ForegroundColor DarkCyan "--- End of validation in"$($watch_per_site.Elapsed.TotalSeconds) "seconds ---"
 
-        $totalTime += $watch.Elapsed.TotalSeconds
-        $watch.Reset()
+        $watch_per_site.Reset()
 
     }
 
@@ -126,7 +127,8 @@ Function verifySSLExpiry {
     $body += "</ul>"
 
     send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject $subject -from_email $from_email -to_email $to_email $body
-    Write-Host -ForegroundColor Yellow "---END OF RESULTS in $totalTime seconds---"
+    $watch.Stop()
+    Write-Host -ForegroundColor Yellow "---END OF RESULTS in $($watch.Elapsed.TotalSeconds) seconds---"
 
 
 }

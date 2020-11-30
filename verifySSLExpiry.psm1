@@ -16,7 +16,7 @@
 
 $timeout = 15
 $checkInterval = 2
-$minDays = 68
+$minDays = 60
 
 $smtp_user = "arnaud.gandibleux@gmail.com"
 $smtp_server = "smtp.gmail.com"
@@ -27,7 +27,8 @@ $to_email = "arnaud.gandibleux@gmail.com"
 Function verifySSLExpiry {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)][string[]]$sites
+        [Parameter(Mandatory = $true)][string[]]$sites,
+        [Parameter(Mandatory = $false)][boolean]$mail_report
     )
     $watch = New-Object System.Diagnostics.Stopwatch
     $watch.Start()
@@ -126,7 +127,9 @@ Function verifySSLExpiry {
 
     $body += "</ul>"
 
-    send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject $subject -from_email $from_email -to_email $to_email -body $body
+    if ($mail_report) {
+        send_email -smtp_port $smtp_port -smtp_server $smtp_server -subject $subject -from_email $from_email -to_email $to_email -body $body
+    }
     $watch.Stop()
     Write-Host -ForegroundColor Yellow "---END OF RESULTS in $($watch.Elapsed.TotalSeconds) seconds---"
 

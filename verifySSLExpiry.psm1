@@ -2,27 +2,27 @@
 .SYNOPSIS
   Verify SSL Expiry Date of given sites
 .DESCRIPTION
-  <Brief description of script>
+  Powershell script to verify SSL Expiry Date of given sites
+    - Check multiple sites at once
+    - Send report e-mail when SSL expires within X days
 .INPUTS
   SITE URL
-.OUTPUTS
 .NOTES
-  Version:        0.2
+  Version:        1.0
   Author:         Arnaud Gandibleux
   Creation Date:  26/12/2020
   Purpose/Change: Verify SSL Expiry Date of given sites
-.EXAMPLE
 #>
 
 $timeout = 15
 $checkInterval = 2
-$minDays = 60
+$minDays = 30
 
-$smtp_user = "arnaud.gandibleux@gmail.com"
-$smtp_server = "smtp.gmail.com"
+$smtp_user = "test@domain.com"
+$smtp_server = "smtp.domain.com"
 $smtp_port = "587"
-$from_email = "arnaud.gandibleux@gmail.com"
-$to_email = "arnaud.gandibleux@gmail.com"
+$from_email = "test@domain.com"
+$to_email = "test@domain.com"
 
 Function verifySSLExpiry {
     [CmdletBinding()]

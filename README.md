@@ -20,6 +20,13 @@ Open PowerShell and run
 ```sh
 $ verifySSLExpiry -sites SITE 1, SITE 2, SITE 3,...,SITE X
 ```
+###Example
+
+Use URL without specifying port or protocol. Ex. Use gandibleux.eu instead of https://gandibleux.eu
+
+```sh
+$ verifySSLExpiry -sites gandibleux.eu
+```
 
 ### Send mail report
 
